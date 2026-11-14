@@ -313,13 +313,9 @@
   };
 
   /* ---------- Données ---------- */
+  // Page vide au départ : aucune donnée n’est contenue dans ce fichier.
   function sample() {
-    const mk = (title, items, group) => ({ id: uid(), title, group, items: items.map(([text, done]) => ({ id: uid(), text, done })) });
-    return [
-      mk('Lancement du site', [['Rédiger la page d’accueil', true], ['Choisir la palette', true], ['Relire les textes', false], ['Mettre en ligne', false]], 'prio'),
-      mk('Voyage à Lisbonne', [['Réserver les vols', true], ['Trouver un logement', false], ['Lister les quartiers à voir', false]], 'noprio'),
-      mk('À lire', [['Un livre sur le design', false], ['Newsletter de la semaine', false]], 'interne')
-    ];
+    return [];
   }
 
   const cleanItems = arr => (Array.isArray(arr) ? arr : [])
