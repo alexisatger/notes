@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TO DOOOOOO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* ---------- Couleurs et réglages (change --accent pour changer la couleur d’accent) ---------- */
+  :root {
+    color-scheme: dark;
+    --bg: #0b0b0c;
+    --card: #161618;
+    --line: rgba(255, 255, 255, .07);
+    --line-2: rgba(255, 255, 255, .14);
+    --text: #f2f2f4;
+    --muted: #8e8e96;
+    --faint: #5d5d65;
+    --accent: #80FACB;
+    --danger: #ff7b7b;
+    --radius: 16px;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Lueurs douces en arrière-plan : c’est ce que les blocs en verre floutent */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(55% 45% at 12% 0%, color-mix(in srgb, var(--accent) 17%, transparent), transparent 70%),
+      radial-gradient(45% 40% at 92% 30%, rgba(125, 140, 255, .15), transparent 70%),
+      radial-gradient(55% 45% at 35% 100%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 70%);
+  }
+  main { max-width: 1160px; margin: 0 auto; padding: 56px 24px 96px; }
+
+  button, input, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+
+  /* ---------- En-tête ---------- */
+  .add-row { display: flex; justify-content: flex-end; margin-top: 8px; }
+  h1 { margin: 0; font-size: 34px; font-weight: 650; letter-spacing: -.025em; }
+  .tool {
+    display: grid; place-items: center;
+    width: 32px; height: 32px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .05);
+    color: var(--muted);
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .tool:hover { background: rgba(255, 255, 255, .09); border-color: var(--line-2); color: var(--text); }
+  .tool svg { width: 16px; height: 16px; display: block; }
+  .tool.add-project { color: var(--accent); }
+  .tool.add-project:hover { color: var(--accent); }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .05);
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: background .15s, border-color .15s;
+  }
+  .btn:hover { background: rgba(255, 255, 255, .09); border-color: var(--line-2); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #0b0b0c; font-weight: 600; }
+  .btn.primary:hover { filter: brightness(1.08); }
+
+  /* ---------- Grille : 3 projets par ligne ---------- */
+  .group-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 18px;
+    row-gap: 0;
+    grid-auto-rows: 1px;   /* mise en page en « briques » : chaque bloc occupe autant de lignes de 1 px que sa hauteur */
+    align-items: start;
+  }
+  @media (max-width: 980px) { .group-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 640px) { .group-grid { grid-template-columns: minmax(0, 1fr); } main { padding: 36px 16px 80px; } }
+
+  /* ---------- Boîte projet ---------- */
+  .card {
+    background: linear-gradient(150deg, rgba(255, 255, 255, .075), rgba(255, 255, 255, .025));
+    -webkit-backdrop-filter: blur(22px) saturate(150%);
+    backdrop-filter: blur(22px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, .1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .09), 0 10px 30px rgba(0, 0, 0, .35);
+    border-radius: var(--radius);
+    padding-bottom: 6px;
+    transition: border-color .15s, opacity .15s;
+  }
+  .card:hover { border-color: var(--line-2); }
+  .card.dragging { opacity: .35; outline: 1px dashed var(--accent); outline-offset: 3px; }
+
+  .head { display: flex; align-items: center; gap: 4px; padding: 12px 8px 8px 8px; }
+  .icon {
+    flex: none;
+    display: grid; place-items: center;
+    width: 30px; height: 30px;
+    border: 0; border-radius: 8px;
+    background: transparent;
+    color: var(--faint);
+    transition: background .15s, color .15s;
+  }
+  .icon:hover { background: rgba(255, 255, 255, .07); color: var(--text); }
+  .icon svg { width: 16px; height: 16px; display: block; }
+  .grip { cursor: grab; }
+  .grip:active { cursor: grabbing; }
+  .head .del { margin-left: -8px; }
+
+  .title {
+    flex: 1; min-width: 0;
+    background: transparent; border: 0;
+    padding: 6px 6px;
+    border-radius: 8px;
+    font-size: 16px; font-weight: 620; letter-spacing: -.01em;
+  }
+  .title::placeholder { color: var(--faint); }
+  .title:hover { background: rgba(255, 255, 255, .04); }
+  .title:focus { background: rgba(255, 255, 255, .06); outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent); }
+
+  
+
+  
+
+  .del.armed {
+    width: auto; padding: 0 10px;
+    color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 14%, transparent);
+    font-size: 13px;
+  }
+
+  .progress { height: 3px; margin: 0 16px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .progress > i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 3px; transition: width .3s ease; }
+
+  
+
+  /* ---------- Items ---------- */
+  .items { list-style: none; margin: 8px 0 0; padding: 0 8px; }
+  .item { display: flex; align-items: flex-start; gap: 10px; padding: 5px 6px; border-radius: 10px; }
+  .item:hover { background: rgba(255, 255, 255, .035); }
+
+  .check { position: relative; flex: none; display: block; width: 20px; height: 20px; margin-top: 3px; cursor: pointer; }
+  .check input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .box {
+    display: grid; place-items: center;
+    width: 20px; height: 20px;
+    border: 1.5px solid var(--line-2);
+    border-radius: 50%;
+    transition: background .15s, border-color .15s;
+  }
+  .box::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); transform: scale(0); transition: transform .18s ease; }
+  .box svg { display: none; }
+  .check:hover .box { border-color: var(--muted); }
+  .check input:focus-visible + .box { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .check input:checked + .box::after { transform: scale(1); }
+
+  .item-text {
+    flex: 1; min-width: 0;
+    resize: none; overflow: hidden;
+    background: transparent; border: 0;
+    padding: 2px 4px;
+    border-radius: 6px;
+    line-height: 1.45;
+    transition: color .15s;
+  }
+  .item-text:focus { outline: none; background: rgba(255, 255, 255, .06); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
+  .item.done .item-text { color: var(--faint); }
+
+  .del-item { width: 26px; height: 26px; opacity: 0; margin-top: 1px; }
+  .item:hover .del-item, .del-item:focus-visible { opacity: 1; }
+  .del-item:hover { color: var(--danger); }
+  @media (hover: none) { .del-item { opacity: .6; } }
+
+  .add { padding: 4px 8px 10px; }
+  .add input {
+    width: 100%;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 8px 5px;
+    font-size: 14px;
+  }
+  .add input::placeholder { color: var(--faint); font-size: 17px; }
+  .add input:hover { background: rgba(255, 255, 255, .035); }
+  .add input:focus { outline: none; background: rgba(255, 255, 255, .05); border-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+
+  /* ---------- Séparateur (item « --- ») ---------- */
+  .item.sep { position: relative; align-items: center; padding-top: 6px; padding-bottom: 6px; }
+  .item.sep:hover { background: transparent; }
+  .sep-line { flex: 1; height: 1px; background: var(--line-2); }
+  .item.sep .del-item { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); margin-top: 0; background: #232327; }
+  .item.note { margin-top: 7px; }
+  .item.note .item-text { margin-left: -4px; padding-left: 4px; color: var(--accent); }
+
+  /* ---------- Lignes déplaçables (glisser depuis n’importe où sur la ligne) ---------- */
+  .item { cursor: grab; }
+  .item-text { cursor: text; }
+  .item.dragging-item { opacity: .35; }
+
+  /* ---------- Lien discret de sauvegarde, en bas de page ---------- */
+  .foot { margin-top: 40px; text-align: center; }
+  .foot-btn { background: transparent; border: 0; padding: 6px 10px; border-radius: 8px; font-size: 12px; color: var(--faint); transition: color .15s, background .15s; }
+  .foot-btn:hover { color: var(--muted); background: rgba(255, 255, 255, .05); }
+
+  /* ---------- Groupes de box (PRIO, NO PRIO, INTERNE) ---------- */
+  .group-label { margin: 0 0 14px 2px; font-size: 11px; font-weight: 600; letter-spacing: .08em; line-height: 1; color: #b3b3bb; }
+  .group-grid:empty { min-height: 28px; }   /* zone où l’on peut déposer une box dans un groupe vide */
+  .group-sep { height: 1px; background: var(--line-2); margin: 28px 0 32px; }
+
+
+  /* ---------- État vide ---------- */
+  .empty {
+    border: 1px dashed var(--line-2);
+    border-radius: var(--radius);
+    padding: 64px 24px;
+    text-align: center;
+  }
+  .empty[hidden] { display: none; }
+  .empty h2 { margin: 0 0 6px; font-size: 18px; font-weight: 620; }
+  .empty p { margin: 0 0 20px; color: var(--muted); }
+
+  /* ---------- Sauvegarde (dialogue) ---------- */
+  dialog {
+    width: min(560px, calc(100vw - 32px));
+    padding: 22px;
+    background: #1b1b1e;
+    color: var(--text);
+    border: 1px solid var(--line-2);
+    border-radius: 18px;
+  }
+  dialog::backdrop { background: rgba(0, 0, 0, .6); backdrop-filter: blur(4px); }
+  dialog h2 { margin: 0 0 6px; font-size: 18px; }
+  dialog p { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+  #json {
+    width: 100%; height: 220px; resize: vertical;
+    background: #0f0f11; border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.5;
+  }
+  #json:focus { outline: none; border-color: var(--accent); }
+  .dlg-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; }
+
+  /* ---------- Message ---------- */
+  .toast {
+    position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    transform: translate(-50%, 12px);
+    background: #26262a; border: 1px solid var(--line-2);
+    padding: 10px 16px; border-radius: 12px; font-size: 14px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s, transform .2s;
+    z-index: 20;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+  }
+
+  /* ================= DA « app noire + cartes colorées » ================= */
+  :root { --ink:#0b0b0c; --ink-2:rgba(11,11,12,.5); --ink-3:rgba(11,11,12,.12); --accent:#fff;
+          --c-prio:#ffe680; --c-noprio:#5ce6e4; --c-interne:#ffffff; --radius:28px; }
+  body { background:#8d8d90; padding:12px; font-family:Manrope,"Plus Jakarta Sans",Inter,-apple-system,system-ui,sans-serif; letter-spacing:-.005em; }
+  body::before { display:none; }
+  main { background:#222224; border-radius:34px; max-width:1320px; min-height:calc(100vh - 24px); padding:56px 48px 56px; box-shadow:0 30px 80px rgba(0,0,0,.35); }
+  @media (max-width:640px){ main{padding:32px 16px 48px;border-radius:26px;} body{padding:8px;} }
+  :focus-visible { outline-color:#fff; }
+
+  .group-label { margin:0 0 20px; font-size:22px; font-weight:800; letter-spacing:-.02em; line-height:1.1; color:#fff; }
+  .group-sep { height:1px; background:rgba(255,255,255,.1); margin:48px 0 52px; }
+  .group-grid { column-gap:22px; }
+
+  .card { background:var(--c); border:0; box-shadow:none; -webkit-backdrop-filter:none; backdrop-filter:none; color:var(--ink); padding-bottom:12px; }
+  .card:hover { border:0; }
+  .card.dragging { outline-color:#fff; }
+  .group[data-group="prio"] { --c:var(--c-prio); }
+  .group[data-group="noprio"] { --c:var(--c-noprio); }
+  .group[data-group="interne"] { --c:var(--c-interne); }
+
+  .head { padding:18px 14px 10px 18px; }
+  .title { font-size:20px; font-weight:700; letter-spacing:-.02em; color:var(--ink); }
+  .title::placeholder { color:var(--ink-2); }
+  .title:hover { background:rgba(11,11,12,.06); }
+  .title:focus { background:rgba(11,11,12,.08); box-shadow:0 0 0 2px var(--ink); }
+  .icon { color:var(--ink-2); }
+  .icon:hover { background:rgba(11,11,12,.09); color:var(--ink); }
+  .del.armed { color:#fff; background:var(--ink); }
+
+  .progress { height:4px; margin:0 18px; background:var(--ink-3); }
+  .progress > i { background:var(--ink); }
+
+  .items { padding:0 12px; margin-top:10px; }
+  .item { padding:6px 6px; }
+  .item:hover { background:rgba(11,11,12,.06); }
+  .box { border-color:rgba(11,11,12,.45); }
+  .box::after { background:var(--ink); }
+  .check:hover .box { border-color:var(--ink); }
+  .check input:focus-visible + .box { outline-color:var(--ink); }
+  .item-text { color:var(--ink); font-weight:500; }
+  .item-text:focus { background:rgba(11,11,12,.07); box-shadow:0 0 0 2px var(--ink); }
+  .item.done .item-text { color:rgba(11,11,12,.38); }
+  .del-item:hover { color:var(--ink); }
+  .sep-line { background:rgba(11,11,12,.2); }
+  .item.sep .del-item { background:var(--c); }
+  .item.note .item-text { color:var(--ink); font-weight:700; }
+
+  .add { padding:2px 12px 8px; }
+  .add input { color:var(--ink); }
+  .add input::placeholder { color:var(--ink-2); }
+  .add input:hover { background:rgba(11,11,12,.06); }
+  .add input:focus { background:rgba(11,11,12,.07); border-color:var(--ink); }
+
+  .tool { width:44px; height:44px; border-radius:50%; border:0; background:#fff; color:#0b0b0c; }
+  .tool:hover { background:#fff; filter:brightness(.88); color:#0b0b0c; border:0; }
+  .tool svg { width:20px; height:20px; }
+  .tool.add-project, .tool.add-project:hover { color:#0b0b0c; }
+
+  .foot-btn { color:#6a6a72; }
+  dialog { background:#161618; border-radius:24px; }
+  .btn.primary { background:#fff; border-color:#fff; color:#0b0b0c; }
+  .toast { background:#fff; color:#0b0b0c; border:0; }
+</style>
+</head>
+<body>
+<main>
+  <div id="board" role="region" aria-label="Projets"></div>
+  <div class="foot"><button class="foot-btn" id="backupBtn" type="button">Sauvegarde</button></div>
+</main>
+
+<dialog id="backup">
+  <h2>Sauvegarde</h2>
+  <p>Copie ce texte pour garder une sauvegarde de tes projets. Pour restaurer, colle un texte sauvegardé ici : il remplacera les projets actuels.</p>
+  <p id="syncState"></p>
+  <textarea id="json" spellcheck="false" aria-label="Données des projets au format JSON"></textarea>
+  <div class="dlg-actions">
+    <button class="btn" id="copyJson" type="button">Copier</button>
+    <button class="btn" id="restoreJson" type="button">Restaurer ce texte</button>
+    <button class="btn primary" id="closeBackup" type="button">Fermer</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* Structure des données :
+     [{ id, title, collapsed, items: [{ id, text, done }] }] */
+
+  const KEY = 'notes-projets-v1';
+  const META_KEY = 'notes-projets-v1-meta';       // date de la dernière modification faite par toi
+  const BEFORE_KEY = 'notes-projets-v1-avant-sync';   // copie locale gardée si la version en ligne la remplace
+  const AUTO_KEY = 'notes-projets-v1-auto';   // copie de sécurité écrite automatiquement toutes les 5 secondes
+  const uid = () => Math.random().toString(36).slice(2, 10);
+  // Un item composé uniquement de tirets (---) devient un séparateur
+  const isSep = it => /^-{3,}$/.test(it.text.trim());
+  // Lignes sans case à cocher (séparateurs et textes simples) : ignorées dans la progression
+  const isPlain = it => it.note || isSep(it);
+  // Les trois groupes de box de la page. Un projet sans groupe (anciennes notes) va dans PRIO.
+  const GROUPS = [['prio', 'PRIO'], ['noprio', 'NO PRIO'], ['interne', 'INTERNE']];
+  const gOf = p => (GROUPS.some(x => x[0] === p.group) ? p.group : 'prio');
+
+  const ICONS = {
+    plus: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>',
+    grip: '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="5.5" cy="3.5" r="1.2"/><circle cx="10.5" cy="3.5" r="1.2"/><circle cx="5.5" cy="8" r="1.2"/><circle cx="10.5" cy="8" r="1.2"/><circle cx="5.5" cy="12.5" r="1.2"/><circle cx="10.5" cy="12.5" r="1.2"/></svg>',
+    chevron: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6l4.5 4.5L12.5 6"/></svg>',
+    trash: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>',
+    x: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>',
+    check: '<svg viewBox="0 0 12 12" fill="none" stroke="#0b0b0c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.5l2.3 2.3L9.5 3.5"/></svg>'
+  };
+
+  /* ---------- Données ---------- */
+  // Page vide au départ : aucune donnée n’est contenue dans ce fichier.
+  function sample() {
+    return [];
+  }
+
+  const cleanItems = arr => (Array.isArray(arr) ? arr : [])
+    .filter(i => i && typeof i === 'object')
+    .map(i => ({ id: uid(), text: typeof i.text === 'string' ? i.text.slice(0, 1000) : '', done: !!i.done, note: !!i.note }));
+
+  // Nettoie des données importées ou relues : ne garde que des chaînes et des booléens.
+  function sanitize(data) {
+    const list = Array.isArray(data) ? data : (data && Array.isArray(data.projects) ? data.projects : null);
+    if (!list) return null;
+    return list.filter(p => p && typeof p === 'object').map(p => ({
+      id: uid(),
+      title: typeof p.title === 'string' ? p.title.slice(0, 200) : '',
+      group: GROUPS.some(x => x[0] === p.group) ? p.group : 'prio',
+      
+      // Les items d’anciennes sous-catégories sont conservés, à la suite de la liste du projet
+      items: [...cleanItems(p.items), ...(Array.isArray(p.groups) ? p.groups : []).filter(g => g && typeof g === 'object').flatMap(g => cleanItems(g.items))]
+    }));
+  }
+
+  function load() {
+    try {
+      for (const k of [KEY, AUTO_KEY]) {
+        const raw = localStorage.getItem(k);
+        if (raw === null) continue;
+        try {
+          const clean = sanitize(JSON.parse(raw));
+          if (clean) return clean;
+        } catch (e) { /* donnée illisible : on essaie la copie automatique */ }
+      }
+    } catch (e) { /* stockage indisponible : on repart des exemples */ }
+    return sample();
+  }
+
+  function save() {
+    updatedAt = Date.now();
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+      localStorage.setItem(META_KEY, JSON.stringify({ updatedAt }));
+    } catch (e) { /* ignoré */ }
+    scheduleRemote();
+  }
+
+  let state = load();
+  let updatedAt = loadMeta();   // 0 = jamais modifié par toi (exemples), 1 = notes d’avant la synchronisation, sinon une date
+
+  /* ---------- Outils DOM (le texte saisi passe toujours par textContent / .value) ---------- */
+  function h(tag, props = {}, ...kids) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+      if (k === 'class') e.className = v;
+      else if (k === 'html') e.innerHTML = v;   // réservé aux icônes statiques ci-dessus
+      else e.setAttribute(k, v);
+    }
+    e.append(...kids);
+    return e;
+  }
+  const $ = id => document.getElementById(id);
+  const board = $('board');
+
+  function autosize(ta) { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
+
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  /* ---------- Rendu ---------- */
+  // Chaque bloc garde sa hauteur naturelle ; l’espace vertical entre blocs est toujours GAP.
+  const GAP = 18;
+  function layoutCard(card) {
+    card.style.gridRowEnd = `span ${Math.ceil(card.getBoundingClientRect().height) + GAP}`;
+  }
+  const sizeObserver = new ResizeObserver(entries => entries.forEach(en => layoutCard(en.target)));
+
+  // Trois groupes (PRIO, NO PRIO, INTERNE) : un titre, une grille de box, un « + » ; un trait sépare les groupes.
+  function buildGroups() {
+    const out = [];
+    GROUPS.forEach(([key, label], i) => {
+      if (i > 0) out.push(h('div', { class: 'group-sep', role: 'separator' }));
+      const grid = h('div', { class: 'group-grid' }, ...state.filter(p => gOf(p) === key).map(buildCard));
+      const btn = h('button', { class: 'tool add-project', type: 'button', html: ICONS.plus,
+        'aria-label': `Nouveau projet dans ${label}`, title: 'Nouveau projet' });
+      btn.addEventListener('click', () => newProject(key));
+      out.push(h('section', { class: 'group', 'data-group': key },
+        h('div', { class: 'group-label' }, label), grid, h('div', { class: 'add-row' }, btn)));
+    });
+    return out;
+  }
+
+  function render() {
+    board.replaceChildren(...buildGroups());
+    sizeObserver.disconnect();
+    board.querySelectorAll('.card').forEach(c => { layoutCard(c); sizeObserver.observe(c); });
+    requestAnimationFrame(() => board.querySelectorAll('.item-text').forEach(autosize));
+  }
+
+  
+
+  function updateProgress(card, p) {
+    const total = p.items.filter(i => !isPlain(i)).length;
+    const done = p.items.filter(i => i.done && !isPlain(i)).length;
+    
+    card.querySelector('.progress > i').style.width = total ? `${(done / total) * 100}%` : '0%';
+  }
+
+  function buildCard(p) {
+    const card = h('article', { class: 'card', 'data-id': p.id });
+
+    // En-tête : poignée, titre, compteur, replier, supprimer
+    const grip = h('button', { class: 'icon grip', type: 'button', html: ICONS.grip,
+      'aria-label': 'Déplacer le projet (glisser, ou utiliser les flèches du clavier)', title: 'Glisser pour déplacer' });
+    grip.addEventListener('keydown', e => {
+      const dir = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[e.key];
+      if (!dir) return;
+      e.preventDefault();
+      const peers = state.filter(x => gOf(x) === gOf(p));
+      const neighbour = peers[peers.findIndex(x => x.id === p.id) + dir];
+      if (neighbour) {
+        const i = state.indexOf(p), j = state.indexOf(neighbour);
+        [state[i], state[j]] = [state[j], state[i]];
+      } else {   // en bout de groupe : la box passe dans le groupe voisin
+        const next = GROUPS[GROUPS.findIndex(x => x[0] === gOf(p)) + dir];
+        if (!next) return;
+        state.splice(state.indexOf(p), 1);
+        p.group = next[0];
+        if (dir > 0) state.unshift(p); else state.push(p);   // début du groupe du dessous, fin de celui du dessus
+      }
+      save(); render();
+      board.querySelector(`[data-id="${p.id}"] .grip`).focus();
+    });
+
+    const title = h('input', { class: 'title', type: 'text', placeholder: 'Titre du projet', 'aria-label': 'Titre du projet' });
+    title.value = p.title;
+    title.addEventListener('input', () => { p.title = title.value; save(); });
+    title.addEventListener('keydown', e => { if (e.key === 'Enter') title.blur(); });
+
+    
+
+    
+
+    const del = h('button', { class: 'icon del', type: 'button', html: ICONS.trash, 'aria-label': 'Supprimer le projet', title: 'Supprimer le projet' });
+    let armTimer;
+    del.addEventListener('click', () => {
+      if (del.classList.contains('armed')) {
+        state = state.filter(x => x.id !== p.id);
+        save(); render();
+        return;
+      }
+      del.classList.add('armed');
+      del.textContent = 'Supprimer ?';
+      armTimer = setTimeout(() => { del.classList.remove('armed'); del.innerHTML = ICONS.trash; }, 3000);
+    });
+    del.addEventListener('blur', () => { clearTimeout(armTimer); del.classList.remove('armed'); del.innerHTML = ICONS.trash; });
+
+    const head = h('div', { class: 'head' }, title, grip, del);
+    const progress = h('div', { class: 'progress', 'aria-hidden': 'true' }, h('i'));
+
+    // Corps : liste d’items + champ d’ajout
+    const list = h('ul', { class: 'items' });
+    p.items.forEach(it => list.append(buildItem(p, it, card)));
+
+    const addInput = h('input', { type: 'text', placeholder: '+', 'aria-label': 'Ajouter un item' });
+    addInput.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      const text = addInput.value.trim();
+      if (!text) return;
+      const note = text.startsWith('+');   // « + » au début : texte simple, sans case à cocher
+      const body = note ? text.slice(1).trim() : text;
+      if (!body) return;
+      const it = { id: uid(), text: body, done: false, note };
+      p.items.push(it);
+      const li = buildItem(p, it, card);
+      list.append(li);
+      const ta = li.querySelector('.item-text');
+      if (ta) autosize(ta);
+      addInput.value = '';
+      save(); updateProgress(card, p);
+    });
+    const add = h('div', { class: 'add' }, addInput);
+
+    const inner = h('div', { class: 'body-inner' }, list, add);
+    const body = h('div', { class: 'body' }, inner);
+    
+
+    card.append(head, progress, body);
+    updateProgress(card, p);
+    return card;
+  }
+
+  // Déplace une ligne d’un cran vers le haut (-1) ou le bas (1) dans son projet (Alt + flèches)
+  function moveItem(p, it, dir) {
+    const i = p.items.findIndex(x => x.id === it.id), j = i + dir;
+    if (i < 0 || j < 0 || j >= p.items.length) return;
+    [p.items[i], p.items[j]] = [p.items[j], p.items[i]];
+    save(); render();
+    const el = board.querySelector(`.item[data-id="${it.id}"] .item-text`) || board.querySelector(`.item[data-id="${it.id}"]`);
+    if (el) el.focus();
+  }
+
+  function buildItem(p, it, card) {
+    // Séparateur : un simple trait gris, sans case à cocher
+    if (isSep(it)) {
+      const sep = h('li', { class: 'item sep', 'data-id': it.id, tabindex: '0', 'aria-label': 'Séparateur (Alt + flèches haut ou bas pour déplacer)' }, h('div', { class: 'sep-line', role: 'separator' }));
+      const rmSep = h('button', { class: 'icon del-item', type: 'button', html: ICONS.x, 'aria-label': 'Supprimer le séparateur', title: 'Supprimer' });
+      rmSep.addEventListener('click', () => removeItem(p, it, sep, card));
+      sep.addEventListener('keydown', e => {
+        if (e.target === sep && e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); moveItem(p, it, e.key === 'ArrowUp' ? -1 : 1); }
+      });
+      sep.append(rmSep);
+      return sep;
+    }
+    const li = h('li', { class: 'item' + (it.done ? ' done' : '') + (it.note ? ' note' : ''), 'data-id': it.id });
+
+    const cb = h('input', { type: 'checkbox', 'aria-label': 'Marquer comme fait' });
+    cb.checked = it.done;
+    cb.addEventListener('change', () => {
+      it.done = cb.checked;
+      li.classList.toggle('done', it.done);
+      save(); updateProgress(card, p);
+    });
+    const check = h('label', { class: 'check' }, cb, h('span', { class: 'box', html: ICONS.check }));
+
+    const ta = h('textarea', { class: 'item-text', rows: '1', 'aria-label': 'Texte de l’item' });
+    ta.value = it.text;
+    ta.addEventListener('input', () => { it.text = ta.value; autosize(ta); save(); });
+    ta.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); ta.blur(); }
+      else if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); moveItem(p, it, e.key === 'ArrowUp' ? -1 : 1); }
+    });
+    ta.addEventListener('blur', () => {
+      if (ta.value.trim() === '') { removeItem(p, it, li, card); return; }
+      if (isSep(it)) {            // « --- » tapé dans un item : la ligne devient un séparateur
+        it.done = false;
+        li.replaceWith(buildItem(p, it, card));
+        save(); updateProgress(card, p);
+        return;
+      }
+      if (!it.note && it.text.trim().startsWith('+') && it.text.trim().slice(1).trim()) {   // « + » au début : texte simple, sans case
+        it.text = it.text.trim().slice(1).trim();
+        it.note = true;
+        it.done = false;
+        li.replaceWith(buildItem(p, it, card));
+        save(); updateProgress(card, p);
+      }   // un item vidé est supprimé
+    });
+
+    const rm = h('button', { class: 'icon del-item', type: 'button', html: ICONS.x, 'aria-label': 'Supprimer l’item', title: 'Supprimer' });
+    rm.addEventListener('click', () => removeItem(p, it, li, card));
+
+    li.append(...(it.note ? [] : [check]), ta, rm);
+    return li;
+  }
+
+  function removeItem(p, it, li, card) {
+    p.items = p.items.filter(x => x.id !== it.id);
+    li.remove();
+    save(); updateProgress(card, p);
+  }
+
+  /* ---------- Glisser-déposer des projets ---------- */
+  let dragged = null;
+
+  // On n’active le glissement que depuis la poignée, pour pouvoir sélectionner du texte normalement.
+  const armDrag = e => { const g = e.target.closest && e.target.closest('.grip'); if (g) g.closest('.card').draggable = true; };
+  const disarmDrag = () => board.querySelectorAll('.card[draggable="true"]').forEach(c => { c.draggable = false; });
+  board.addEventListener('mousedown', armDrag);
+  board.addEventListener('touchstart', armDrag, { passive: true });
+  document.addEventListener('mouseup', disarmDrag);
+  document.addEventListener('touchend', disarmDrag);
+
+  board.addEventListener('dragstart', e => {
+    const c = e.target;
+    if (!c.classList || !c.classList.contains('card')) return;
+    dragged = c;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', c.dataset.id);
+    requestAnimationFrame(() => c.classList.add('dragging'));
+  });
+
+  board.addEventListener('dragover', e => {
+    if (!dragged) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const target = e.target.closest('.card');
+    if (!target) {   // hors d’une box : le titre d’un groupe place la box en tête, son « + » ou un groupe vide en fin
+      const grp = e.target.closest('.group');
+      if (!grp) return;
+      const grid = grp.querySelector('.group-grid');
+      if (e.target.closest('.group-label')) { if (grid.firstElementChild !== dragged) grid.prepend(dragged); }
+      else if ((e.target.closest('.add-row') || !grid.querySelector('.card:not(.dragging)')) && grid.lastElementChild !== dragged) grid.append(dragged);
+      return;
+    }
+    if (target === dragged) return;
+    const r = target.getBoundingClientRect();
+    const before = e.clientX < r.left + r.width / 2;
+    if (before ? target.previousElementSibling === dragged : target.nextElementSibling === dragged) return;
+    target.parentNode.insertBefore(dragged, before ? target : target.nextElementSibling);
+  });
+
+  board.addEventListener('drop', e => { if (dragged) e.preventDefault(); });
+
+  board.addEventListener('dragend', () => {
+    if (!dragged) return;
+    dragged.classList.remove('dragging');
+    dragged.draggable = false;
+    // On relit l’ordre affiché et le groupe de chaque box
+    const order = [];
+    board.querySelectorAll('.group').forEach(g => g.querySelectorAll('.group-grid > .card').forEach(c => {
+      const p = state.find(x => x.id === c.dataset.id);
+      if (p) { p.group = g.dataset.group; order.push(p.id); }
+    }));
+    state.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+    dragged = null;
+    save();
+  });
+
+  /* ---------- Glisser-déposer des lignes (items et séparateurs) ---------- */
+  // Une ligne peut être déplacée dans son projet ou vers un autre projet déplié.
+  let draggedItem = null;
+
+  const armItem = e => {
+    const li = e.target.closest && e.target.closest('.item');
+    if (!li || e.target.closest('.del-item')) return;                                   // pas depuis la croix
+    if (e.target.tagName === 'TEXTAREA' && e.target === document.activeElement) return;  // texte en cours d’édition : sélection normale
+    li.draggable = true;
+  };
+  const disarmItem = () => board.querySelectorAll('.item[draggable="true"]').forEach(li => { li.draggable = false; });
+  board.addEventListener('mousedown', armItem);
+  board.addEventListener('touchstart', armItem, { passive: true });
+  document.addEventListener('mouseup', disarmItem);
+  document.addEventListener('touchend', disarmItem);
+
+  board.addEventListener('dragstart', e => {
+    const li = e.target;
+    if (!li.classList || !li.classList.contains('item')) return;
+    draggedItem = li;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', li.dataset.id);
+    requestAnimationFrame(() => li.classList.add('dragging-item'));
+  });
+
+  board.addEventListener('dragover', e => {
+    if (!draggedItem) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const li = e.target.closest('.item');
+    if (li) {
+      if (li === draggedItem) return;
+      const r = li.getBoundingClientRect();
+      const before = e.clientY < r.top + r.height / 2;
+      if (before ? li.previousElementSibling === draggedItem : li.nextElementSibling === draggedItem) return;
+      li.parentNode.insertBefore(draggedItem, before ? li : li.nextElementSibling);
+      return;
+    }
+    // Hors d’une ligne : une liste vide, ou le champ « + », place la ligne en fin de liste
+    const card = e.target.closest('.card');
+    if (!card) return;
+    const ul = card.querySelector('.items');
+    if ((e.target.closest('.add') || !ul.children.length) && ul.lastElementChild !== draggedItem) ul.append(draggedItem);
+  });
+
+  board.addEventListener('drop', e => { if (draggedItem) e.preventDefault(); });
+
+  board.addEventListener('dragend', () => {
+    if (!draggedItem) return;
+    draggedItem.draggable = false;
+    draggedItem = null;
+    // On relit l’ordre affiché pour mettre à jour les données, puis on redessine tout
+    const byId = new Map(state.flatMap(p => p.items).map(i => [i.id, i]));
+    board.querySelectorAll('.card').forEach(card => {
+      const p = state.find(x => x.id === card.dataset.id);
+      if (p) p.items = [...card.querySelectorAll('.items > .item')].map(li => byId.get(li.dataset.id)).filter(Boolean);
+    });
+    save(); render();
+  });
+
+  /* ---------- Actions globales ---------- */
+  function newProject(group) {
+    const p = { id: uid(), title: '', group: GROUPS.some(x => x[0] === group) ? group : 'prio', items: [] };
+    state.push(p);
+    save(); render();
+    const input = board.querySelector(`[data-id="${p.id}"] .title`);
+    input.focus();
+    input.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+
+  
+
+  /* ---------- Sauvegarde / restauration ---------- */
+  const dlg = $('backup'), box = $('json');
+  $('backupBtn')?.addEventListener('click', () => {
+    box.value = JSON.stringify(state.map(({ title, items, group }) => ({ title, group: gOf({ group }), items: items.map(({ text, done, note }) => ({ text, done, ...(note ? { note: true } : {}) })) })), null, 2);
+    $('syncState').textContent = syncMessage();
+    dlg.showModal();
+  });
+  $('closeBackup').addEventListener('click', () => dlg.close());
+  $('copyJson').addEventListener('click', async () => {
+    box.select();
+    try { await navigator.clipboard.writeText(box.value); toast('Copié'); }
+    catch (e) { document.execCommand('copy'); toast('Copié'); }
+  });
+  $('restoreJson').addEventListener('click', () => {
+    let clean = null;
+    try { clean = sanitize(JSON.parse(box.value)); } catch (e) { /* invalide */ }
+    if (!clean) { toast('Texte invalide : colle une sauvegarde complète'); return; }
+    state = clean;
+    save(); render();
+    dlg.close();
+    toast('Projets restaurés');
+  });
+
+  /* ---------- Synchronisation en ligne (compte Claude) ---------- */
+  // En plus du navigateur, les notes sont gardées dans le stockage privé de la page, lié à ton compte,
+  // pour les retrouver à l’identique ailleurs. Si ce stockage est indisponible (fichier local, non connecté),
+  // tout continue de fonctionner avec le navigateur seul.
+  let remote = null;
+  let syncStatus = 'off';   // off | ok | error | readonly
+  let pushTimer = null, pushing = false, lastPushedAt = 0;
+
+  function loadMeta() {
+    try {
+      const m = JSON.parse(localStorage.getItem(META_KEY));
+      if (m && typeof m.updatedAt === 'number') return m.updatedAt;
+      // Données d’avant la synchronisation : 1 pour de vraies notes, 0 s’il ne s’agit que des exemples
+      const sig = ps => JSON.stringify(ps.map(p => [p.title, p.items.map(i => i.text)]));
+      return localStorage.getItem(KEY) === null || sig(state) === sig(sample()) ? 0 : 1;
+    } catch (e) { return 0; }
+  }
+
+  function syncMessage() {
+    if (syncStatus === 'ok') return 'Synchronisation en ligne active : tes notes suivent ton compte Claude.';
+    if (syncStatus === 'error') return 'Envoi en ligne impossible pour le moment, nouvel essai automatique. Tes notes restent enregistrées dans ce navigateur.';
+    if (syncStatus === 'readonly') return 'Synchronisation en ligne non autorisée avec ton niveau d’accès : tes notes restent dans ce navigateur.';
+    return 'Tes notes sont enregistrées dans ce navigateur uniquement. Pour les copier ailleurs (une autre appli, un autre appareil) : copie ce texte, ouvre ce même écran de l’autre côté, colle-le, puis clique sur « Restaurer ce texte ».';
+  }
+
+  function scheduleRemote(delay = 1500) {
+    if (!remote || syncStatus === 'readonly') return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(pushRemote, delay);
+  }
+
+  async function pushRemote() {
+    if (!remote || pushing || syncStatus === 'readonly') return;
+    if (updatedAt === 0 || updatedAt === lastPushedAt) return;   // rien de nouveau à envoyer
+    if (updatedAt === 1) {   // première synchronisation de notes plus anciennes : on leur donne une vraie date
+      updatedAt = Date.now();
+      try { localStorage.setItem(META_KEY, JSON.stringify({ updatedAt })); } catch (e) { /* ignoré */ }
+    }
+    pushing = true;
+    const at = updatedAt;
+    try {
+      await remote.set({ updatedAt: at, projects: JSON.parse(JSON.stringify(state)) });
+      lastPushedAt = at;
+      syncStatus = 'ok';
+    } catch (e) {
+      syncStatus = e && e.code === 'invalid_argument' ? 'readonly' : 'error';
+    } finally {
+      pushing = false;
+    }
+    if (syncStatus === 'error') scheduleRemote(15000);
+    else if (updatedAt !== lastPushedAt) scheduleRemote();
+  }
+
+  // On ne remplace pas l’affichage pendant une saisie ou un glissement
+  function userIsBusy() {
+    const a = document.activeElement;
+    return !!dragged || !!draggedItem || !!(a && board.contains(a) && /^(INPUT|TEXTAREA)$/.test(a.tagName));
+  }
+
+  async function pullRemote() {
+    if (!remote || syncStatus === 'readonly') return;
+    try {
+      const snap = await remote.get();
+      if (!snap.exists) { if (updatedAt > 0) scheduleRemote(0); return; }
+      const d = snap.data() || {};
+      const R = typeof d.updatedAt === 'number' ? d.updatedAt : 0;
+      if (R < updatedAt) { scheduleRemote(0); return; }   // la version de cet appareil est plus récente : on l’envoie
+      if (R === updatedAt || userIsBusy()) return;         // identique, ou saisie en cours : on réessaiera plus tard
+      const clean = sanitize(d.projects);
+      if (!clean) return;
+      // Avant de remplacer la version locale, on en garde une copie
+      if (updatedAt > 0) { try { localStorage.setItem(BEFORE_KEY, JSON.stringify(state)); } catch (e) { /* ignoré */ } }
+      state = clean;
+      updatedAt = R;
+      lastPushedAt = R;
+      try {
+        const json = JSON.stringify(state);
+        localStorage.setItem(KEY, json);
+        localStorage.setItem(AUTO_KEY, json);
+        localStorage.setItem(META_KEY, JSON.stringify({ updatedAt }));
+        lastAuto = json;
+      } catch (e) { /* ignoré */ }
+      render();
+    } catch (e) { /* hors ligne : on réessaiera */ }
+  }
+
+  async function initRemote() {
+    if (!window.claude || typeof window.claude.use !== 'function') return;   // fichier local : pas de synchronisation
+    try {
+      const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+      if (!db || !user) return;
+      const uid = await user.id();
+      if (!uid) return;
+      remote = db.doc(`data/users/${uid}/notes`);
+      syncStatus = 'ok';
+      await pullRemote();
+    } catch (e) { remote = null; syncStatus = 'off'; }
+  }
+
+  /* ---------- Sauvegarde automatique (toutes les 5 secondes, si quelque chose a changé) ---------- */
+  let lastAuto = '';
+  function autoBackup() {
+    try {
+      const json = JSON.stringify(state);
+      if (json === lastAuto) return;
+      localStorage.setItem(KEY, json);
+      localStorage.setItem(AUTO_KEY, json);
+      lastAuto = json;
+    } catch (e) { /* stockage indisponible : ignoré */ }
+  }
+  let ticks = 0;
+  setInterval(() => { autoBackup(); if (++ticks % 6 === 0) pullRemote(); }, 5000);   // et toutes les 30 s : on regarde si une version plus récente existe en ligne
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { autoBackup(); pushRemote(); } else pullRemote(); });
+  window.addEventListener('pagehide', autoBackup);
+
+  window.addEventListener('resize', () => board.querySelectorAll('.item-text').forEach(autosize));
+
+  render();
+  initRemote();
+})();
+</script>
+</body>
+</html>
